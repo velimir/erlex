@@ -1,0 +1,12 @@
+{application, erlex,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { erlex_app, []}},
+  {env, []}
+ ]}.
