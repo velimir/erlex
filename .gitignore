@@ -1,0 +1,5 @@
+# compiled sources
+*.beam
+
+# emacs temp files
+*~
