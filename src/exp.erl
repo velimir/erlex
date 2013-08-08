@@ -1,6 +1,6 @@
 -module(exp).
 %% TODO: add tests
-%% TODO: add export 
+%% TODO: add export
 -compile(export_all).
 
 %% parse input string to Erlang exp format
@@ -63,4 +63,27 @@ evaluator(Exp) ->
         {minus, Lh, Rh} -> evaluator(Lh) - evaluator(Rh);
         {prod, Lh, Rh} -> evaluator(Lh) * evaluator(Rh);
         {division, Lh, Rh} -> evaluator(Lh) / evaluator(Rh)
+    end.
+
+%% pretty_printer
+%% return exp into a string representation
+%% TODO: make sure that we cann't avoid lists:flatten
+pretty_printer(Exp) ->
+    case Exp of
+        {num, E} -> integer_to_list(E);
+        {inv, E} -> lists:flatten(io_lib:format(exp_format(inv), [pretty_printer(E)]));
+        {Op, Lh, Rh} -> lists:flatten(io_lib:format(exp_format(Op), [pretty_printer(Lh), 
+                                                                     pretty_printer(Rh)]))
+    end.
+
+%% exp_format
+%% return expression format for give tag
+%% Tag - input tag (EX: inv, plus, minus, prod, etc.)
+exp_format(Tag) ->
+    case Tag of
+        inv -> "~~~s";
+        plus -> "(~s+~s)";
+        minus -> "(~s-~s)";
+        prod -> "(~s*~s)";
+        division -> "(~s/~s)"
     end.
