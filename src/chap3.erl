@@ -142,9 +142,11 @@ merge_sort(List) ->
         0 -> List;
         1 -> List;
         %%TODO: how can we use "let E = exp() in <clause> end" expression
-        N -> case split(List, N div 2) of
-                 [Lh, Rh] -> merge(merge_sort(Rh),
-                                   merge_sort(Lh))
+        N -> [Lh, Rh] = split(List, N div 2),
+             merge(merge_sort(Rh), merge_sort(Lh))
+        %% N -> case split(List, N div 2) of
+        %%          [Lh, Rh] -> merge(merge_sort(Rh),
+        %%                            merge_sort(Lh))
              end
     end.
 
