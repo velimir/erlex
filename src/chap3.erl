@@ -1,5 +1,6 @@
 -module(chap3).
 %% TODO: add export functions
+%% TODO: add test
 -compile(export_all).
 
 %% 3.1 Function sum/1
@@ -108,6 +109,31 @@ flatten(Lists) ->
     end.
 
 %% 3.6 Sorting Lists
+%% quick sort
+quick_sort([]) -> [];
+quick_sort([H|T]) ->
+    case smaller(T, H) of
+        {Smalls, Rests} ->
+            quick_sort(Smalls) ++ [H] ++ quick_sort(Rests)
+    end.
+
+%% split
+%% return tuple with smaller and rest lists compare to Pivot element
+%% List - input list
+%% Pivot - each element in list'll be compared with pivot
+smaller(List, Pivot) ->
+    smaller_acc(List, Pivot, [], []).
+
+smaller_acc([], _Pivot, Smalls, Rests) ->
+    {reverse(Smalls), reverse(Rests)};
+smaller_acc([H|T], Pivot, Smalls, Rests) ->
+    if
+        H < Pivot ->
+            smaller_acc(T, Pivot, [H|Smalls], Rests);
+        true ->
+            smaller_acc(T, Pivot, Smalls, [H|Rests])
+    end.
+
 %% merge sorting
 %% List - input list
 %% return sorted list
@@ -115,8 +141,9 @@ merge_sort(List) ->
     case len(List) of
         0 -> List;
         1 -> List;
+        %%TODO: how can we use "let E = exp() in <clause> end" expression
         N -> case split(List, N div 2) of
-                 [Lh, Rh] -> merge(merge_sort(Rh), 
+                 [Lh, Rh] -> merge(merge_sort(Rh),
                                    merge_sort(Lh))
              end
     end.
@@ -136,7 +163,7 @@ split_acc(List, 0, Acc) ->
     [reverse(Acc), List];
 split_acc([H|T], N, Acc) ->
     split_acc(T, N - 1, [H|Acc]).
-    
+
 
 %% merge two sorted lists
 %% Lh - first list
