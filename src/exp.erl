@@ -51,3 +51,16 @@ parse_num_acc(Stream, Acc) ->
         _Other ->
             {{num, list_to_integer(lists:reverse(Acc))}, Stream}
     end.
+
+%% evaluator
+%% return evaluated parsed expression
+%% Exp - parsed Erlang expression (see: exp:parser)
+evaluator(Exp) ->
+    case Exp of
+        {num, E} -> E;
+        {inv, E} -> -evaluator(E);
+        {plus, Lh, Rh} -> evaluator(Lh) + evaluator(Rh);
+        {minus, Lh, Rh} -> evaluator(Lh) - evaluator(Rh);
+        {prod, Lh, Rh} -> evaluator(Lh) * evaluator(Rh);
+        {division, Lh, Rh} -> evaluator(Lh) / evaluator(Rh)
+    end.
