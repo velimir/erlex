@@ -108,3 +108,53 @@ flatten(Lists) ->
     end.
 
 %% 3.6 Sorting Lists
+%% merge sorting
+%% List - input list
+%% return sorted list
+merge_sort(List) ->
+    case len(List) of
+        0 -> List;
+        1 -> List;
+        N -> case split(List, N div 2) of
+                 [Lh, Rh] -> merge(merge_sort(Rh), 
+                                   merge_sort(Lh))
+             end
+    end.
+
+%% return length of the list
+len([]) -> 0;
+len([_|T]) ->
+    1 + len(T).
+
+%% split List on to two lists with first list of length N
+%% List - input list
+%% N - first list size
+split(List, N) ->
+    split_acc(List, N, []).
+
+split_acc(List, 0, Acc) ->
+    [reverse(Acc), List];
+split_acc([H|T], N, Acc) ->
+    split_acc(T, N - 1, [H|Acc]).
+    
+
+%% merge two sorted lists
+%% Lh - first list
+%% Rh - second list
+%% return merged sorted list
+merge(Lh, Rh) ->
+    reverse(merge_acc(Lh, Rh, [])).
+
+merge_acc([], [], Acc) ->
+    Acc;
+merge_acc([], [H|T], Acc) ->
+    merge_acc([], T, [H|Acc]);
+merge_acc([H|T], [], Acc) ->
+    merge_acc(T, [], [H|Acc]);
+merge_acc([LhHead|LT], [RhHead|RT], Acc) ->
+    if
+        LhHead < RhHead ->
+            merge_acc(LT, [RhHead|RT], [LhHead|Acc]);
+        true ->
+            merge_acc([LhHead|LT], RT, [RhHead|Acc])
+    end.
