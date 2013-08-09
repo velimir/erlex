@@ -104,3 +104,30 @@ compiler_acc(Exp, Acc) ->
         {Op, Lh, Rh} ->
             compiler_acc(Lh, compiler_acc(Rh, [Op|Acc]))
     end.
+
+%% simulator
+%% implement expression for the stack machine
+%% Stack - given stack with instruction 
+%%         (EX: {push N}, division, plus, minus and etc.)
+%% return value of expression
+simulator(Stack) ->
+    sim_impl(Stack, []).
+
+sim_impl([], [V]) -> V;
+sim_impl([H|T], Stack) -> 
+    io:format("Stack: ~w~n", [Stack]),
+    case H of
+        {push, N} ->
+            sim_impl(T, [N|Stack]);
+        inv ->
+            [E|ST] = Stack,
+            sim_impl(T, [-E|ST]);
+        BinOp -> 
+            [Rh, Lh|ST] = Stack,
+            case BinOp of
+                division -> sim_impl(T, [Lh/Rh|ST]);
+                prod -> sim_impl(T, [Lh*Rh|ST]);
+                plus -> sim_impl(T, [Lh+Rh|ST]);
+                minus -> sim_impl(T, [Lh-Rh|ST])
+            end
+    end.
