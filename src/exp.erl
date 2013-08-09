@@ -115,7 +115,6 @@ simulator(Stack) ->
 
 sim_impl([], [V]) -> V;
 sim_impl([H|T], Stack) -> 
-    io:format("Stack: ~w~n", [Stack]),
     case H of
         {push, N} ->
             sim_impl(T, [N|Stack]);
