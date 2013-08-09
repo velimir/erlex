@@ -9,7 +9,7 @@
 %% retrun exps
 parser(InStr) ->
     %% XXX: toooo ugly, I'm sure
-    %% that it can be solved in a much smart way
+    %% it can be solved in a much smart way
     {Ast, _} = parse_impl(stream(InStr)),
     Ast.
 
@@ -72,7 +72,7 @@ pretty_printer(Exp) ->
     case Exp of
         {num, E} -> integer_to_list(E);
         {inv, E} -> lists:flatten(io_lib:format(exp_format(inv), [pretty_printer(E)]));
-        {Op, Lh, Rh} -> lists:flatten(io_lib:format(exp_format(Op), [pretty_printer(Lh), 
+        {Op, Lh, Rh} -> lists:flatten(io_lib:format(exp_format(Op), [pretty_printer(Lh),
                                                                      pretty_printer(Rh)]))
     end.
 
@@ -86,4 +86,21 @@ exp_format(Tag) ->
         minus -> "(~s-~s)";
         prod -> "(~s*~s)";
         division -> "(~s/~s)"
+    end.
+
+%% compiler
+%% transform exp into a sequence of code for a stack machine to
+%% evaluate the exp
+%% Exp - parsed exp
+compiler(Exp) ->
+    compiler_acc(Exp, []).
+
+compiler_acc(Exp, Acc) ->
+    case Exp of
+        {num, N} -> 
+            [{push, N}|Acc];
+        {Op, E} ->
+            compiler_acc(E, [Op|Acc]);
+        {Op, Lh, Rh} ->
+            compiler_acc(Lh, compiler_acc(Rh, [Op|Acc]))
     end.
