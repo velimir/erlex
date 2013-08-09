@@ -97,7 +97,7 @@ compiler(Exp) ->
 
 compiler_acc(Exp, Acc) ->
     case Exp of
-        {num, N} -> 
+        {num, N} ->
             [{push, N}|Acc];
         {Op, E} ->
             compiler_acc(E, [Op|Acc]);
@@ -107,21 +107,21 @@ compiler_acc(Exp, Acc) ->
 
 %% simulator
 %% implement expression for the stack machine
-%% Stack - given stack with instruction 
+%% Stack - given stack with instruction
 %%         (EX: {push N}, division, plus, minus and etc.)
 %% return value of expression
 simulator(Stack) ->
     sim_impl(Stack, []).
 
 sim_impl([], [V]) -> V;
-sim_impl([H|T], Stack) -> 
+sim_impl([H|T], Stack) ->
     case H of
         {push, N} ->
             sim_impl(T, [N|Stack]);
         inv ->
             [E|ST] = Stack,
             sim_impl(T, [-E|ST]);
-        BinOp -> 
+        BinOp ->
             [Rh, Lh|ST] = Stack,
             case BinOp of
                 division -> sim_impl(T, [Lh/Rh|ST]);
@@ -129,4 +129,29 @@ sim_impl([H|T], Stack) ->
                 plus -> sim_impl(T, [Lh+Rh|ST]);
                 minus -> sim_impl(T, [Lh-Rh|ST])
             end
+    end.
+
+%% simplifier
+%% simplify an expression and exclude operation which cann't influence
+%% on value of expression
+%% Exp - parsed expression
+%% return simplified expression
+simplifier(Exp) ->
+    case Exp of
+        {inv, {num, 0}} -> {num, 0};
+        %% prod
+        {prod, {num, 0}, _} -> {num, 0};
+        {prod, _, {num, 0}} -> {num, 0};
+        {prod, E, {num, 1}} -> simplifier(E);
+        {prod, {num, 1}, E} -> simplifier(E);
+        %% division
+        {division, {num, 0}, _} -> {num, 0};
+        %% plus
+        {plus, {num, 0}, E} -> simplifier(E);
+        {plus, E, {num , 0}} -> simplifier(E);
+        %% minus
+        {minus, E, {num, 0}} -> simplifier(E);
+        {num, N} -> {num, N};
+        {Op, Lh, Rh} ->
+            simplifier({Op, simplifier(Lh), simplifier(Rh)})
     end.
