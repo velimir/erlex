@@ -25,6 +25,12 @@ doc([]) -> [];
 doc([Line|T]) ->
     string:tokens(Line, " ") ++ doc(T).
 
+%% get_doc
+%% return doc from give file path
+%% FilePath - path to file
+get_doc(FilePath) ->
+    doc(raw_doc(FilePath)).
+
 %% index_doc
 %% create ordered dicionary {Word, [occurrences_in_text]}
 %% RawDocTail - raw document (see: func raw_doc)
@@ -84,3 +90,54 @@ word_format({Word, Indexes}) ->
 %% Dict - Dictionary
 pretty_print(Dict) ->
     string:join(lists:map(fun word_format/1, Dict), "\n").
+
+%% filled
+%% return filled text where each line width limited to Width
+%% Doc - given doc (see: doc/1 function)
+%% Width - max line width
+filled(Doc, Width) ->
+    string:join(filled_raw_doc(Doc, Width), "\n").
+
+%% filled_raw_doc
+%% return list of lines, each of them's length limited to Width
+%% Doc - list of words (see: doc/1)
+%% Width - max line width
+filled_raw_doc([], _) -> [];
+filled_raw_doc(Doc, Width) ->
+    case take_words(Doc, Width) of
+        {Filled, Rest} ->
+            [string:join(Filled, " ")|filled_raw_doc(Rest, Width)]
+    end.
+
+%% take_words
+%% return {Words, RemainWords} tuple, where Words is a list of words,
+%% which string:join(Words, " ") of them would be le than given Width
+%% Doc - list of words (see: doc/1)
+%% Width - max line length
+take_words(Doc, Width) ->
+    take_words_acc(Doc, Width, []).
+
+%% take_words_acc
+%% implementation of take_words function (see: take_words/2)
+take_words_acc([], _RemainWidth, Acc) ->
+    {lists:reverse(Acc), []};
+take_words_acc(Words, RemainWidth, Acc) when RemainWidth =< 0 ->
+    {lists:reverse(Acc), Words};
+%% we have to count spaces between words
+%% when it's the first word - no spaces is needed and
+%% we can allow this word even it greater than Width
+take_words_acc([Word|Tail], RemainWidth, []) ->
+    case length(Word) of
+        N when N =< RemainWidth ->
+            take_words_acc(Tail, RemainWidth - N, [Word]);
+        _ ->
+            take_words_acc(Tail, 0, [Word])
+    end;
+take_words_acc([Word|Tail], RemainWidth, Acc) ->
+    Len = length(Word) + 1,
+    case Len of
+        N when N =< RemainWidth ->
+            take_words_acc(Tail, RemainWidth - Len, [Word|Acc]);
+        _ ->
+            take_words_acc([Word|Tail], 0, Acc)
+    end.
