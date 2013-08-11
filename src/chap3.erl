@@ -1,7 +1,14 @@
 -module(chap3).
-%% TODO: add export functions
-%% TODO: add test
--compile(export_all).
+%%%===================================================================
+%%% API
+%%%===================================================================
+-export([sum/1, sum/2,
+         create/1, reverse_create/1, 
+         print_ints/1, print_even/1,
+         filter/2, reverse/1,
+         concatenate/1, flatten/1,
+         quick_sort/1, merge_sort/1,
+         len/1, split/2, merge/2]).
 
 %% 3.1 Function sum/1
 %% N - upperbound
@@ -14,7 +21,7 @@ sum(1) ->
 %% 3.1 Function sum/2
 %% N - lowerbound
 %% M - upperbound
-%% return the sum of the interval between N and M
+%% return the sum of the interval between N and M [N, M]
 %% throw badarg when N > M
 sum(N, M) when N < M ->
     M + sum(N, M - 1);
@@ -26,6 +33,8 @@ sum(N, M) when N > M ->
 %% 3.2 Function create/1
 %% N - value of the last element in the list
 %% return [1, 2, ..., N - 1, N] sequence
+create(N) when N < 0 ->
+    throw({badarg, N});
 create(N) -> create_acc(N, []).
 %% acc function for create/1
 create_acc(0, List) -> List;
@@ -36,6 +45,8 @@ create_acc(N, List) -> create_acc(N - 1, [N|List]).
 %% return [N, N - 1, ..., 2, 1] sequence
 reverse_create(0) ->
     [];
+reverse_create(N) when N < 0 ->
+    throw({badarg, N});
 reverse_create(N) ->
     [N|reverse_create(N - 1)].
 
@@ -182,3 +193,66 @@ merge_acc([LhHead|LT], [RhHead|RT], Acc) ->
         true ->
             merge_acc([LhHead|LT], RT, [RhHead|Acc])
     end.
+
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+sum_test_() ->
+    [
+     ?_assertEqual(1, sum(1)),
+     ?_assertEqual(55, sum(10)),
+     ?_assertError(_Error, sum(0))
+    ].
+
+sum_2_test_() ->
+    [
+     ?_assertEqual(0, sum(0, 0)),
+     ?_assertEqual(1, sum(0, 1)),
+     ?_assertEqual(1, sum(1, 1)),
+     ?_assertEqual(sum(10), sum(1, 10)),
+     ?_assertThrow({badarg, 0}, sum(1, 0))
+    ].
+
+create_test_() ->
+    [
+     ?_assertEqual([1, 2, 3], create(3)),
+     ?_assertEqual([], create(0)),
+     ?_assertThrow({badarg, -1}, create(-1))
+    ].
+
+reverse_create_test_() ->
+    [
+     ?_assertEqual([3, 2, 1], reverse_create(3)),
+     ?_assertEqual([], reverse_create(0)),
+     ?_assertThrow({badarg, -1}, reverse_create(-1))
+    ].
+
+filter_test_() ->
+    [
+     ?_assertEqual([], filter([], 0)),
+     ?_assertEqual([-2, -1, 0], filter([-2, -1, 0, 1, 2], 0)),
+     ?_assertEqual([-2, -1], filter([-2, -1, 0, 1, 2], -1)),
+     ?_assertEqual([], filter([-2, -1, 0, 1, 2], -3)),
+     ?_assertEqual([-2, -1, 0, 1, 2], filter([-2, -1, 0, 1, 2], 2))
+    ].
+
+reverse_test_() ->
+    [
+     ?_assertEqual([4, 3, 2, 1], reverse([1, 2, 3, 4])),
+     ?_assertEqual([], reverse([])),
+     ?_assertEqual([3, 2, 1], reverse([1, 2, 3]))
+    ].
+
+concatenate_test_() ->
+    [
+     ?_assertEqual([], concatenate([])),
+     ?_assertEqual([1, 2], concatenate([[1], [2]])),
+     ?_assertEqual([1, 2, 3], concatenate([[1], [2], [3]])),
+     ?_assertEqual([1,2,3,4,5,6], concatenate([[1, 2], [3, 4], [5, 6]]))     
+    ].
+
+-endif.
