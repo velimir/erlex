@@ -23,3 +23,34 @@ b_or(_, _) ->
 
 b_nand(Lh, Rh) ->
     b_not(b_and(Lh, Rh)).
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+b_not_test_() ->
+    [
+     ?_assertEqual(true, b_not(false)),
+     ?_assertEqual(false, b_not(true)),
+     ?_assertEqual({error, invalid_object}, b_not(not_a_boolean))
+    ].
+
+b_and_test_() ->
+    [
+     ?_assertEqual(true, b_and(true, true)),
+     ?_assertEqual(false, b_and(false, true)),
+     ?_assertEqual(false, b_and(true, false)),
+     ?_assertEqual(false, b_and(false, false))
+    ].
+
+b_nand_test_() ->
+    [
+     ?_assertEqual(false, b_nand(true, true)),
+     ?_assertEqual(true, b_nand(false, true)),
+     ?_assertEqual(true, b_nand(true, false)),
+     ?_assertEqual(true, b_nand(false, false))
+    ].
+
+-endif.

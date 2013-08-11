@@ -1,43 +1,22 @@
-%% TODO: add tests
-%% TODO: performace review
-
-%% simple tests for this module can be taken from book:
-%% Db = db:new().
-%% []
-%% Db1 = db:write(francesco, london, Db).
-%% [{francesco,london}]
-%% Db2 = db:write(lelle, stockholm, Db1).
-%% [{lelle,stockholm},{francesco,london}]
-%% db:read(francesco, Db2).
-%% {ok,london}
-%% Db3 = db:write(joern, stockholm, Db2).
-%% [{joern,stockholm},{lelle,stockholm},{francesco,london}]
-%% db:read(ola, Db3).
-%% {error,instance}
-%% db:match(stockholm, Db3).
-%% [joern,lelle]
-%% Db4 = db:delete(lelle, Db3).
-%% [{joern,stockholm},{francesco,london}]
-%% db:match(stockholm, Db4).
-%% [joern]
-
 -module(db).
+%%%===================================================================
+%%% API
+%%% 3.4 Database handling using Lists
+%%% Interface
+%%% db:new() ⇒ Db.
+%%% db:destroy(Db) ⇒ ok.
+%%% db:write(Key, Element, Db) ⇒ NewDb.
+%%% db:delete(Key, Db) ⇒ NewDb.
+%%% db:read(Key, Db) ⇒ {ok, Element} | {error, instance}.
+%%% db:match(Element, Db) ⇒ [Key1, ..., KeyN].
+%%%===================================================================
 -export([new/0, destroy/1, write/3, delete/2, read/2, match/2]).
-
-%% 3.4 Database handling using Lists 
-%% Interface
-%% db:new() ⇒ Db.
-%% db:destroy(Db) ⇒ ok.
-%% db:write(Key, Element, Db) ⇒ NewDb.
-%% db:delete(Key, Db) ⇒ NewDb.
-%% db:read(Key, Db) ⇒ {ok, Element} | {error, instance}.
-%% db:match(Element, Db) ⇒ [Key1, ..., KeyN].
 
 %% new - create empty db
 new() ->
     [].
 
-%% destroy - destroy db  
+%% destroy - destroy db
 destroy(_) ->
     %% Should we check that it's a Db instance?
     %% we can use tag db_instance for this purpose
@@ -67,7 +46,7 @@ delete(Key, Db) ->
 %% Key - key of the {key, value} tuple
 %% Db - database instance
 read(Key, Db) ->
-    case find_val(Key, Db) of 
+    case find_val(Key, Db) of
         false -> {error, instance};
         Val -> {ok, Val}
     end.
@@ -85,7 +64,7 @@ match_acc(Val, Db, Out) ->
         [] -> Out;
         [{Key, Val}|T] ->
             match_acc(Val, T, [Key|Out]);
-        [_|T] -> 
+        [_|T] ->
             match_acc(Val, T, Out)
     end.
 
@@ -106,7 +85,7 @@ find_val(Key, Db) ->
     case Db of
         [] ->
             false;
-        [{Key, Vals}|_] -> 
+        [{Key, Vals}|_] ->
             Vals;
         [{_Other, _Vals}|T] ->
             find_val(Key, T)
@@ -119,9 +98,40 @@ all_except_key(Key, Db) ->
     all_except_key_acc(Key, Db, []).
 
 all_except_key_acc(Key, Db, NewDb) ->
-    case Db of 
+    case Db of
         [] -> NewDb;
         %% is '++' it ok in this case or it can be avoided?
         [{Key, _}|T] -> NewDb ++ T;
         [H|T] -> all_except_key_acc(Key, T, [H|NewDb])
     end.
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+new_test_() ->
+    ?_assertEqual([], new()).
+
+destroy_test_() ->
+    [
+     ?_assertEqual(ok, destroy([])),
+     ?_assertEqual(ok, destroy(new()))
+    ].
+        
+op_1_test() ->
+    Db1 = write(francesco, london, new()),
+    ?assertEqual([{francesco,london}], Db1),
+    Db2 = write(lelle, stockholm, Db1),
+    ?assertEqual([{lelle,stockholm},{francesco,london}], Db2),
+    ?assertEqual({ok,london}, read(francesco, Db2)),
+    Db3 = write(joern, stockholm, Db2),
+    ?assertEqual([{joern,stockholm},{lelle,stockholm},{francesco,london}], Db3),
+    ?assertEqual({error,instance}, read(ola, Db3)),
+    ?assertEqual([joern,lelle], match(stockholm, Db3)),
+    Db4 = delete(lelle, Db3),
+    ?assertEqual([{joern,stockholm},{francesco,london}], Db4),
+    ?assertEqual([joern], match(stockholm, Db4)).
+
+-endif.

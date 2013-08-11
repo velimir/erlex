@@ -1,36 +1,15 @@
-%% TODO: add tests
-
-%% simple tests for this module can be taken from book:
-%% Db = dblists:new().
-%% []
-%% Db1 = dblists:write(francesco, london, Db).
-%% [{francesco,london}]
-%% Db2 = dblists:write(lelle, stockholm, Db1).
-%% [{lelle,stockholm},{francesco,london}]
-%% dblists:read(francesco, Db2).
-%% {ok,london}
-%% Db3 = dblists:write(joern, stockholm, Db2).
-%% [{joern,stockholm},{lelle,stockholm},{francesco,london}]
-%% dblists:read(ola, Db3).
-%% {error,instance}
-%% dblists:match(stockholm, Db3).
-%% [joern,lelle]
-%% Db4 = dblists:delete(lelle, Db3).
-%% [{joern,stockholm},{francesco,london}]
-%% dblists:match(stockholm, Db4).
-%% [joern]
-
 -module(dblists).
+%%%===================================================================
+%%% API
+%%% 3.4 Database handling using Lists
+%%% Interface
+%%% db:new() ⇒ Db.
+%%% db:destroy(Db) ⇒ ok.
+%%% db:write(Key, Element, Db) ⇒ NewDb.
+%%% db:delete(Key, Db) ⇒ NewDb.
+%%% db:read(Key, Db) ⇒ {ok, Element} | {error, instance}.
+%%% db:match(Element, Db) ⇒ [Key1, ..., KeyN].
 -export([new/0, destroy/1, write/3, delete/2, read/2, match/2]).
-
-%% 3.4 Database handling using Lists 
-%% Interface
-%% db:new() ⇒ Db.
-%% db:destroy(Db) ⇒ ok.
-%% db:write(Key, Element, Db) ⇒ NewDb.
-%% db:delete(Key, Db) ⇒ NewDb.
-%% db:read(Key, Db) ⇒ {ok, Element} | {error, instance}.
-%% db:match(Element, Db) ⇒ [Key1, ..., KeyN].
 
 %% new - create empty db
 new() ->
@@ -72,3 +51,38 @@ match(Element, Db) ->
             [Key|match(Element, Rest)];
         false -> []
     end.
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+new_test_() ->
+    ?_assertEqual([], new()).
+
+destroy_test_() ->
+    [
+     ?_assertEqual(ok, destroy([])),
+     ?_assertEqual(ok, destroy(new()))
+    ].
+
+%% TODO: divide to different tests (read, write, delete)
+%%       it can help localize the root of the failed test
+op_1_test() ->
+    Db1 = write(francesco, london, new()),
+    ?assertEqual([{francesco,london}], Db1),
+    Db2 = write(lelle, stockholm, Db1),
+    %% here is a difference between db implementation
+    %% lists opration have another order (ex: append to the end of list)
+    ?assertEqual([{francesco,london}, {lelle,stockholm}], Db2),
+    ?assertEqual({ok,london}, read(francesco, Db2)),
+    Db3 = write(joern, stockholm, Db2),
+    ?assertEqual([{francesco,london},{lelle,stockholm},{joern,stockholm}], Db3),
+    ?assertEqual({error,instance}, read(ola, Db3)),
+    ?assertEqual([lelle,joern], match(stockholm, Db3)),
+    Db4 = delete(lelle, Db3),
+    ?assertEqual([{francesco,london},{joern,stockholm}], Db4),
+    ?assertEqual([joern], match(stockholm, Db4)).
+
+-endif.

@@ -1,12 +1,20 @@
 -module(exp).
-%% TODO: add tests
-%% TODO: add export
--compile(export_all).
+
+%%%===================================================================
+%%% Api
+%%%===================================================================
+-export([parser/1,
+         evaluator/1,
+         pretty_printer/1,
+         compiler/1,
+         simulator/1,
+         simplifier/1]).
 
 %% parse input string to Erlang exp format
 %% InStr - list of chars of expression.
 %%         [Ex: ((2+3)-4), 4, ~((2*3)+(3*4))]
 %% retrun exps
+%% XXX: parser doesn't work properly on not fully bracketed expression
 parser(InStr) ->
     %% XXX: toooo ugly, I'm sure
     %% it can be solved in a much smart way
@@ -28,6 +36,9 @@ parse_impl({H, Next}) ->
             parse_num({H, Next})
     end.
 
+%% stream
+%% return {H, Fun}, where H - current character on given list, Fun -
+%% function, which return {NextCharacter, Fun} and etc
 stream([]) -> eos;
 stream([H|T]) ->
     {H, fun() -> stream(T) end}.
@@ -138,6 +149,13 @@ sim_impl([H|T], Stack) ->
 %% return simplified expression
 simplifier(Exp) ->
     case Exp of
+        {Op, Lh, Rh} ->
+            simplify({Op, simplifier(Lh), simplifier(Rh)});
+        _ -> simplify(Exp)
+    end.
+
+simplify(Exp) ->
+    case Exp of
         {inv, {num, 0}} -> {num, 0};
         %% prod
         {prod, {num, 0}, _} -> {num, 0};
@@ -152,6 +170,103 @@ simplifier(Exp) ->
         %% minus
         {minus, E, {num, 0}} -> simplifier(E);
         {num, N} -> {num, N};
-        {Op, Lh, Rh} ->
-            simplifier({Op, simplifier(Lh), simplifier(Rh)})
+        Other -> Other
     end.
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+parser_test_() ->
+    [
+      ?_assertEqual({minus,{plus,{num,2},{num,3}},{num,4}}, parser("((2+3)-4)")),
+      ?_assertEqual({num,4}, parser("4")),
+      ?_assertEqual({inv,{plus,{prod,{num,2},{num,3}},{prod,{num,3},{num,4}}}},
+                    parser("~((2*3)+(3*4))")),
+      ?_assertEqual({inv,{num,1}}, parser("~1")),
+      ?_assertError(_Error, parser("-1")),
+      ?_assertError(_Error, parser(""))
+    ].
+
+stream_eos_test() ->
+    ?assertEqual(eos, stream([])).
+
+stream_2_test() ->
+    {CH1, S1} = stream("123"),
+    ?assertEqual($1, CH1),
+    {CH2, S2} = S1(),
+    ?assertEqual($2, CH2),
+    {CH3, S3} = S2(),
+    ?assertEqual($3, CH3),
+    ?assertEqual(eos, S3()).
+
+evaluator_test_() ->
+    [
+     ?_assertEqual((1+1), evaluator(parser("(1+1)"))),
+     ?_assertEqual((100+100), evaluator(parser("(100+100)"))),
+     ?_assertEqual(((2+3)-4), evaluator(parser("((2+3)-4)"))),
+     ?_assertEqual(4, evaluator(parser("4"))),
+     ?_assertEqual((-((2*3)+(3*4))), evaluator(parser("~((2*3)+(3*4))"))),
+     ?_assertEqual(2/4, evaluator(parser("(2/4)")))
+    ].
+
+pretty_printer_test_() ->
+    [
+     ?_assertEqual("(1+1)", pretty_printer(parser("(1+1)"))),
+     ?_assertEqual("~1", pretty_printer(parser("~1"))),
+     ?_assertEqual("(1+(1/2))", pretty_printer(parser("(1+(1/2))")))
+    ].
+
+compiler_test_() ->
+    [
+     ?_assertEqual([{push,1}], compiler(parser("1"))),
+     ?_assertEqual([{push,1},{push,1},plus],
+                   compiler(parser("(1+1)"))),
+     ?_assertEqual([{push,1},{push,1},{push,2},division,plus],
+                   compiler(parser("(1+(1/2))"))),
+     ?_assertEqual([{push,2},{push,3},prod,{push,3},{push,4},prod,plus,inv],
+                   compiler(parser("~((2*3)+(3*4))")))
+    ].
+
+simulator_test_() ->
+    [
+     ?_assertEqual(evaluator(parser("(1+1)")),
+                   simulator(compiler(parser("(1+1)")))),
+
+     ?_assertEqual(evaluator(parser("(100+100)")),
+                   simulator(compiler(parser("(100+100)")))),
+
+     ?_assertEqual(evaluator(parser("((2+3)-4)")),
+                   simulator(compiler(parser("((2+3)-4)")))),
+
+     ?_assertEqual(evaluator(parser("4")),
+                   simulator(compiler(parser("4")))),
+
+     ?_assertEqual(evaluator(parser("~((2*3)+(3*4))")),
+                   simulator(compiler(parser("~((2*3)+(3*4))")))),
+
+     ?_assertEqual(evaluator(parser("(2/4)")),
+                   simulator(compiler(parser("(2/4)"))))
+    ].
+
+simplifier_test_() ->
+    [
+     ?_assertEqual("(1+1)",
+                   pretty_printer(simplifier(parser("(1+1)")))),
+
+     ?_assertEqual("1",
+                   pretty_printer(simplifier(parser("(1+(2*(0*19)))")))),
+
+     ?_assertEqual("0",
+                   pretty_printer(simplifier(parser("(1*(2*(0*19)))")))),
+
+     ?_assertEqual("0",
+                   pretty_printer(simplifier(parser("(0*(2*(10/19)))")))),
+
+     ?_assertEqual("0",
+                   pretty_printer(simplifier(parser("(0*(2*(10/19)))"))))
+    ].
+
+-endif.
