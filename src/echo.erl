@@ -4,7 +4,7 @@
 -compile([export_all]).
 
 start() ->
-    register(echo, spawn(echo, loop, [])),
+    register(echo, spawn(?MODULE, loop, [])),
     ok.
 
 print(Term) ->
@@ -29,6 +29,7 @@ loop() ->
     receive
         stop -> true;
         Term ->
+            %% TODO: how can we test it?
             io:format("~p~n", [Term]),
             loop()
     end.
