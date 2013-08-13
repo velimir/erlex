@@ -1,5 +1,8 @@
 -module(ring).
--export([start/3, build_chain/2]).
+%% public
+-export([start/3]).
+%% private fo spawn
+-export([build_chain/2]).
 
 start(M, N, Message) ->
     Pid = spawn(?MODULE, build_chain, [N - 1, self()]),
