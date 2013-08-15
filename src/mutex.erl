@@ -21,7 +21,6 @@
 -endif.
 
 start() ->
-    process_flag(trap_exit, true),
     register(mutex, spawn(?MODULE, init, [])).
 
 stop() ->
@@ -35,6 +34,7 @@ signal() ->
     mutex ! {signal, self()}, ok.
 
 init() ->
+    process_flag(trap_exit, true),
     free().
 
 free() ->
@@ -77,6 +77,7 @@ terminate() ->
 %%%===================================================================
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
 
 cs_start(Name) ->
     register(Name, spawn(mutex, cs_loop, [0])),
@@ -148,7 +149,7 @@ stop_locker() ->
     receive
         ok -> ok
     after
-        1000 -> {error, timeout}
+        500 -> {error, timeout}
     end.
 
 lock() ->
@@ -156,7 +157,7 @@ lock() ->
     receive
         {ok, Count} -> Count
     after
-        1000 -> {error, timeout}
+        500 -> {error, timeout}
     end.
 
 unlock() ->
@@ -164,14 +165,15 @@ unlock() ->
     receive
         {ok, Count} -> Count
     after
-        1000 -> {error, timeout}
+        500 -> {error, timeout}
     end.
 
 kill_locker() ->
     case whereis(locker) of
         undefined -> {error, locker_not_spawned};
         Pid when is_pid(Pid) ->
-            exit(Pid, mutex_test)
+            exit(Pid, mutex_test_exit),
+            ok
     end.
 
 locker_test() ->
@@ -207,10 +209,22 @@ mutex_test_() ->
                       ?assertEqual(0, cs_put(CsName)),
                       kill_locker(),
                       signal(),
-                      timer:sleep(1000),
+                      timer:sleep(500),
                       ?assertEqual(ok, wait()),
                       ?assertEqual(1, cs_take(CsName)),
                       ?assertEqual(0, cs_put(CsName)),
+                      signal()
+              end,
+              fun() ->
+                      ?assertEqual(ok, start_locker(CsName)),
+                      ?assertEqual(1, lock()),
+                      ?assert(undefined =/= whereis(mutex)),
+                      ?assertEqual(ok, kill_locker()),
+                      ?assertEqual(ok, wait()),
+                      ?assertEqual(2, cs_take(CsName)),
+                      ?assertEqual(1, cs_put(CsName)),
+                      ?assertEqual(0, cs_put(CsName)),
+                      ?assert(undefined =/= whereis(mutex)),
                       signal()
               end
              ]
