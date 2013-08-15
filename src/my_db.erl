@@ -16,8 +16,8 @@
 -export([init/0]).
 
 start() ->
-    register(my_db, spawn(my_db, init, [])),
-    ok.
+    register(my_db, spawn_link(my_db, init, [])),
+    {ok, whereis(my_db)}.
 
 stop() -> call(stop).
 write(Key, Element) -> call({write, Key, Element}).
@@ -67,7 +67,10 @@ comn_1_test_() ->
     {spawn,
      {inorder,
       [
-       ?_assertEqual(ok, start()),
+       fun() ->
+               {ok, Pid} =  start(),
+               ?assert(is_pid(Pid))
+       end,
        ?_assertEqual(ok, write(francesco, london)),
        ?_assertEqual(ok, write(lelle, stockholm)),
        ?_assertEqual({ok,london}, read(francesco)),

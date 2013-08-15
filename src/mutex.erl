@@ -21,7 +21,8 @@
 -endif.
 
 start() ->
-    register(mutex, spawn(?MODULE, init, [])).
+    register(mutex, spawn_link(?MODULE, init, [])),
+    {ok, whereis(mutex)}.
 
 stop() ->
     mutex ! stop.
@@ -179,6 +180,11 @@ locker_test() ->
     ?assertEqual(ok, stop_locker()),
     stop(),
     cs_stop(CsName).
+
+mutex_start_test() ->
+    {ok, Pid} = start(),
+    ?assert(is_pid(Pid)),
+    stop().
 
 mutex_test_() ->
     {setup,
