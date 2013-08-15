@@ -34,31 +34,24 @@ signal() ->
     mutex ! {signal, self()}, ok.
 
 init() ->
-    process_flag(trap_exit, true),
     free().
 
 free() ->
     receive
         {wait, Pid} ->
-            try
-                %% we have to make sure that process is still exists.
-                link(Pid),
-                Pid ! ok
-            catch
-                %% Is it OK?
-                _:_ -> free()
-            end,
-            busy(Pid);
+            Ref = erlang:monitor(process, Pid),
+            Pid ! ok,
+            busy({Ref, Pid});
         stop ->
             terminate()
     end.
 
-busy(Pid) ->
+busy({Ref, Pid}) ->
     receive
         {signal, Pid} ->
-            unlink(Pid),
+            erlang:demonitor(Ref, [flush]),
             free();
-        {'EXIT', _Pid, _Reason} ->
+        {'DOWN', Ref, process, Pid, _Reason} ->
             free()
     end.
 
