@@ -135,7 +135,11 @@ is_ordered_test_() ->
      ?_assert(is_ordered(insert(0, new(0)))),
      ?_assert(is_ordered(insert(-10, (insert(10, new(0)))))),
      ?_assert(is_ordered(insert(20, insert(-10, insert(10, new(0)))))),
-     ?_assert(is_ordered(insert(-8, insert(9, insert(20, insert(-10, insert(0, new(0))))))))
+     ?_assert(is_ordered(insert(-8, insert(9, insert(20, insert(-10, insert(0, new(0)))))))),
+     ?_assertNot(is_ordered(
+                   #node{left = #node{value = 99},
+                         right = #node{value = 10,
+                                       right = #node{value = 20}}}))
     ].
 
 -endif.
