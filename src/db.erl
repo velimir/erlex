@@ -13,6 +13,13 @@
 -export([new/0, destroy/1, write/3, delete/2, read/2, match/2]).
 -include("data.hrl").
 
+-ifdef(debug).
+-define(DEBUG(Format, Args),
+        io:format("~s.~w: DEBUG: " ++ Format ++ "~n", [ ?MODULE, ?LINE | Args])).
+-else.
+-define(DEBUG(Format, Args), true).
+-endif.
+
 %% new - create empty db
 new() ->
     [].
@@ -29,6 +36,7 @@ destroy(_) ->
 %% Element - value of the {key, value} tuple
 %% Db - database instance
 write(Key, Element, Db) ->
+    ?DEBUG("writing ~p - ~p to ~p", [Key, Element, Db]),
     case find_val(Key, Db) of
         false -> [#data{key=Key, data=Element}|Db];
         _ -> [#data{key=Key, data=Element}|all_except_key(Key, Db)]
@@ -38,6 +46,7 @@ write(Key, Element, Db) ->
 %% Key - key of the {key, value} tuple
 %% Db - database instance
 delete(Key, Db) ->
+    ?DEBUG("delete ~p from ~p", [Key, Db]),
     case find_val(Key, Db) of
         false -> Db;
         _ -> all_except_key(Key, Db)
@@ -47,6 +56,7 @@ delete(Key, Db) ->
 %% Key - key of the {key, value} tuple
 %% Db - database instance
 read(Key, Db) ->
+    ?DEBUG("deleting ~p from ~p", [Key, Db]),
     case find_val(Key, Db) of
         false -> {error, instance};
         Val -> {ok, Val}
@@ -57,6 +67,7 @@ read(Key, Db) ->
 %% Db - database instance
 %% TODO: can we avoid reversing?
 match(Element, Db) ->
+    ?DEBUG("matching ~p on ~p", [Element, Db]),
     reverse(match_acc(Element, Db, [])).
 
 %% private section
@@ -83,6 +94,7 @@ reverse_acc([], Acc) ->
 %% Key - key for pair {Key, Value} stored in Db
 %% Db - database
 find_val(Key, Db) ->
+    ?DEBUG("trying to find ~p in ~p", [Key, Db]),
     case Db of
         [] ->
             false;
