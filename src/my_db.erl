@@ -12,7 +12,7 @@
 %%%
 %%%===================================================================
 
--export([start/0, stop/0, write/2, delete/1, read/1, match/1]).
+-export([start/0, stop/0, write/2, delete/1, read/1, match/1, code_upgrade/0]).
 -export([init/0]).
 
 start() ->
@@ -24,6 +24,7 @@ write(Key, Element) -> call({write, Key, Element}).
 delete(Key) -> call({delete, Key}).
 read(Key) -> call({read, Key}).
 match(Element) -> call({match, Element}).
+code_upgrade() -> call(code_upgrade).
 
 call(Request) ->
     my_db ! {request, self(), Request},
@@ -57,7 +58,11 @@ loop(DbState) ->
             reply(Pid, Match),
             loop(DbState);
         {request, Pid, stop} ->
-            reply(Pid, ok)
+            reply(Pid, ok);
+        {request, Pid, code_upgrade} ->
+            NewDb = db:code_upgrade(DbState),
+            reply(Pid, ok),
+            loop(NewDb)
     end.
 
 -ifdef(TEST).

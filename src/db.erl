@@ -12,24 +12,16 @@
 %%%===================================================================
 -export([new/0, destroy/1, write/3, delete/2, read/2, match/2]).
 -include("data.hrl").
-
--ifdef(debug).
--define(DEBUG(Format, Args),
-        io:format("~s.~w: DEBUG: " ++ Format ++ "~n", [ ?MODULE, ?LINE | Args])).
--else.
--define(DEBUG(Format, Args), true).
--endif.
+-include("dbg.hrl").
+-vsn(1.0).
 
 %% new - create empty db
 new() ->
     [].
 
 %% destroy - destroy db
-destroy(_) ->
-    %% Should we check that it's a Db instance?
-    %% we can use tag db_instance for this purpose
-    %% Ex: {db_instance, Db}
-    ok.
+destroy(_) -> ok.
+
 
 %% write {Key, Element} to Db
 %% Key - key of the {key, value} tuple
@@ -132,7 +124,7 @@ destroy_test_() ->
      ?_assertEqual(ok, destroy([])),
      ?_assertEqual(ok, destroy(new()))
     ].
-        
+
 op_1_test() ->
     Db1 = write(francesco, london, new()),
     ?assertEqual([#data{key=francesco, data=london}], Db1),
