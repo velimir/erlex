@@ -24,7 +24,8 @@ start_children([]) -> [];
 start_children([{M, F, A, T} | ChildSpecList]) ->
     case start_child({M, F, A, T}) of
         {Pid, Id} when is_pid(Pid) ->
-            [{Pid, Id, {M,F,A,T}}|start_children(ChildSpecList)];
+            {_, Sec, _} = now(),
+            [{Pid, Id, {Sec, 0}, {M,F,A,T}}|start_children(ChildSpecList)];
         {error, _Error} ->
             %% cannot apply
             start_children(ChildSpecList)
@@ -61,17 +62,33 @@ stop_child(Name, Id) ->
 %% If a child terminates, the supervisor receives the EXIT signal and restarts the terminated
 %% child, replacing its entry in the list of children stored in the ChildList variable:
 
+get_spawn_info({Sec, SpawnCount}) ->
+    {_, NowSec, _} = now(),
+    case NowSec - Sec of
+        Dur when Dur < 60, SpawnCount >= 4 ->
+            {error, too_many_spawns_per_min};
+        Dur when Dur < 60 ->
+            {Sec, SpawnCount + 1};
+        Dur when Dur >= 60 ->
+            {NowSec, 0}
+    end.
+
 restart_child(Pid, ChildList, Reason) ->
-    {value, {Pid, Id, {M,F,A,T}}} = lists:keysearch(Pid, 1, ChildList),
+    {value, {Pid, Id, SpawnInfo, {M,F,A,T}}} = lists:keysearch(Pid, 1, ChildList),
     case {Reason, T} of
         {normal, transient} ->
             io:format("normal exit on transient - do not restart~n"),
             lists:keydelete(Pid,1,ChildList);
         {_, _} ->
-            io:format("trying to restart ~p~n", [Pid]),
-            {ok, NewPid} = apply(M,F,A),
-            io:format("~p restarted with new pid - ~p~n", [Pid, NewPid]),
-            [{NewPid, Id, {M,F,A,T}}|lists:keydelete(Pid,1,ChildList)]
+            case get_spawn_info(SpawnInfo) of
+                {error, _} ->
+                    io:format("too many spawns per min: ~p, ~p deleted ~n", [Id, Pid]);
+                {TimeStamp, SpawnCount} ->
+                    io:format("trying to restart ~p,~p (TimeStamp: ~p, SpawnCount: ~p) ~n", [Id, Pid, TimeStamp, SpawnCount]),
+                    {ok, NewPid} = apply(M,F,A),
+                    io:format("~p restarted with new pid - ~p~n", [Pid, NewPid]),
+                    [{NewPid, Id, {TimeStamp, SpawnCount}, {M,F,A,T}}|lists:keydelete(Pid,1,ChildList)]
+            end
     end.
 
 stop_child_impl(Id, ChildList) ->
@@ -121,7 +138,7 @@ stop(Name) ->
     Name ! {stop, self()},
     receive {reply, Reply} -> Reply end.
 
-terminate([{Pid, _Id, _} | ChildList]) ->
+terminate([{Pid, _Id, _, _} | ChildList]) ->
     exit(Pid, kill),
     terminate(ChildList);
 terminate(_ChildList) -> ok.
@@ -131,6 +148,7 @@ terminate(_ChildList) -> ok.
 %%%===================================================================
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
 
 sv_test() ->
     start_link(db_sv, [{my_db, start, [], permanent},
@@ -144,7 +162,7 @@ sv_test() ->
     timer:sleep(500),
     DbPid2 = whereis(my_db),
     ?assert(is_pid(DbPid2)),
-    ?assert(DbPid1 =/= DbPid2),
+    ?assert(DbPid1 /= DbPid2),
     stop(db_sv),
     ?assert(undefined == whereis(my_db)),
     ?assert(undefined == whereis(mutex)).
@@ -159,7 +177,7 @@ transient_test() ->
     timer:sleep(500),
     DbPid2 = whereis(my_db),
     ?assert(is_pid(DbPid2)),
-    ?assert(DbPid1 =/= DbPid2),
+    ?assert(DbPid1 /= DbPid2),
     my_db:stop(),
     timer:sleep(500),
     ?assert(undefined == whereis(my_db)),
@@ -172,5 +190,17 @@ stop_child_test() ->
     ?assertNot(is_pid(whereis(mutex))),
     stop(db_sv),
     ?assert(undefined == whereis(my_db)).
+
+spawn_info_test() ->
+    {_, Sec, _} = now(),
+    {NextSec, NextCount} = get_spawn_info({Sec - 10, 0}),
+    ?assertMatch({NextSec, 1}, {NextSec, NextCount}),
+    ?assertMatch({NextSec, 2}, get_spawn_info({Sec - 10, 1})),
+    ?assertMatch({NextSec, 3}, get_spawn_info({Sec - 10, 2})),
+    ?assertMatch({NextSec, 4}, get_spawn_info({Sec - 10, 3})),
+    ?assertMatch({error, _}, get_spawn_info({Sec - 10, 4})),
+    {NewSec, NewCount} = get_spawn_info({Sec - 120, 4}),
+    ?assert(NewCount == 0),
+    ?assert(NewSec > NextSec).
 
 -endif.
