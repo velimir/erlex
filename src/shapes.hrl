@@ -1,0 +1,4 @@
+-record(circle, {radius}).
+-record(rectangle, {length, width}).
+-record(triangle, {a, b, c}).
+-record(square, {side}).
