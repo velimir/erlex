@@ -1,0 +1,1 @@
+-record(node, {value = 0, left = null, right = null}).
