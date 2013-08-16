@@ -11,6 +11,7 @@
 %%% db:match(Element, Db) ⇒ [Key1, ..., KeyN].
 %%%===================================================================
 -export([new/0, destroy/1, write/3, delete/2, read/2, match/2]).
+-include("data.hrl").
 
 %% new - create empty db
 new() ->
@@ -29,8 +30,8 @@ destroy(_) ->
 %% Db - database instance
 write(Key, Element, Db) ->
     case find_val(Key, Db) of
-        false -> [{Key, Element}|Db];
-        _ -> [{Key, Element}|all_except_key(Key, Db)]
+        false -> [#data{key=Key, data=Element}|Db];
+        _ -> [#data{key=Key, data=Element}|all_except_key(Key, Db)]
     end.
 
 %% delete Key from Db
@@ -62,7 +63,7 @@ match(Element, Db) ->
 match_acc(Val, Db, Out) ->
     case Db of
         [] -> Out;
-        [{Key, Val}|T] ->
+        [#data{key=Key, data=Val}|T] ->
             match_acc(Val, T, [Key|Out]);
         [_|T] ->
             match_acc(Val, T, Out)
@@ -85,9 +86,9 @@ find_val(Key, Db) ->
     case Db of
         [] ->
             false;
-        [{Key, Vals}|_] ->
+        [#data{key=Key, data=Vals}|_] ->
             Vals;
-        [{_Other, _Vals}|T] ->
+        [_|T] ->
             find_val(Key, T)
     end.
 
@@ -101,7 +102,7 @@ all_except_key_acc(Key, Db, NewDb) ->
     case Db of
         [] -> NewDb;
         %% is '++' it ok in this case or it can be avoided?
-        [{Key, _}|T] -> NewDb ++ T;
+        [#data{key=Key}|T] -> NewDb ++ T;
         [H|T] -> all_except_key_acc(Key, T, [H|NewDb])
     end.
 
@@ -122,16 +123,20 @@ destroy_test_() ->
         
 op_1_test() ->
     Db1 = write(francesco, london, new()),
-    ?assertEqual([{francesco,london}], Db1),
+    ?assertEqual([#data{key=francesco, data=london}], Db1),
     Db2 = write(lelle, stockholm, Db1),
-    ?assertEqual([{lelle,stockholm},{francesco,london}], Db2),
+    ?assertEqual([#data{key=lelle, data=stockholm},
+                  #data{key=francesco, data=london}], Db2),
     ?assertEqual({ok,london}, read(francesco, Db2)),
     Db3 = write(joern, stockholm, Db2),
-    ?assertEqual([{joern,stockholm},{lelle,stockholm},{francesco,london}], Db3),
+    ?assertEqual([#data{key=joern, data=stockholm},
+                  #data{key=lelle, data=stockholm},
+                  #data{key=francesco, data=london}], Db3),
     ?assertEqual({error,instance}, read(ola, Db3)),
     ?assertEqual([joern,lelle], match(stockholm, Db3)),
     Db4 = delete(lelle, Db3),
-    ?assertEqual([{joern,stockholm},{francesco,london}], Db4),
+    ?assertEqual([#data{key=joern, data=stockholm},
+                  #data{key=francesco, data=london}], Db4),
     ?assertEqual([joern], match(stockholm, Db4)).
 
 -endif.
