@@ -57,7 +57,7 @@ write(Key, Element) ->
 %% @doc
 %% Delete (Key.Element) pair from server by given Key
 %%
-%% @spec delete(Key::any()) -> ok.
+%% @spec delete(Key::any()) -> ok
 %% @end
 %%--------------------------------------------------------------------
 -spec(delete(Key::key()) -> ok).
@@ -69,7 +69,7 @@ delete(Key) ->
 %% @doc
 %% Read Element from the server by given Key
 %%
-%% @spec read(Key:any()) -> {ok, Element} | {error, instance}
+%% @spec read(Key::any()) -> {ok, Element} | {error, instance}
 %% @end
 %%--------------------------------------------------------------------
 -spec(read(Key::key()) -> {ok, element()} | {error, instance} ).
@@ -103,10 +103,10 @@ start_link() ->
 %% @doc
 %% Starts the server w/o linking (useful for debugging from shell)
 %%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
+%% @spec start() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
--spec(start() -> {ok, pid()}).
+-spec(start() -> {ok, pid()} | ignore | {error, tuple()}).
 
 start() ->
     gen_server:start({local, ?SERVER}, ?MODULE, [], []).
@@ -120,7 +120,7 @@ start() ->
 %% @doc
 %% Initializes the server, create empty database
 %%
-%% @spec init() -> {ok, State}
+%% @spec init([]) -> {ok, State}
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
