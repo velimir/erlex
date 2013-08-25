@@ -5,5 +5,8 @@ ebin/
 # temp unit test directory
 .eunit/
 
+# doc directory
+doc/
+
 # emacs temp files
 *~
